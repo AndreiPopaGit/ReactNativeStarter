@@ -3,6 +3,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { useEffect } from 'react';
 import { initializeFoodList } from '../lib/initializeFoodList';
 
+
 export default function RootLayout() {
   useEffect(() => {
     initializeFoodList();
@@ -10,7 +11,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack />
+      <Stack screenOptions={{headerShown: false}}/>
     </AuthProvider>
   );
 }
