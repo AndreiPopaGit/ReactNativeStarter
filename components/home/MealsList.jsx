@@ -25,7 +25,7 @@ export default function MealsList({
             key={meal.id}
             style={{ marginBottom: 16 }}
             onPress={() => onMealPress(meal)}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
           >
             <MealCard
               meal={meal}

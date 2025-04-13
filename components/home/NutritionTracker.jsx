@@ -1,20 +1,16 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
-// Helper function for SVG Arc
 function describeArc(x, y, radius, startAngle, endAngle) {
     const startRad = (startAngle - 90) * Math.PI / 180.0;
     const endRad = (endAngle - 90) * Math.PI / 180.0;
     const angleDiff = endAngle - startAngle;
-    // Ensure angleDiff handles wrapping around 360 if necessary
     const positiveAngleDiff = angleDiff <= 0 ? angleDiff + 360 : angleDiff;
     const largeArcFlag = positiveAngleDiff <= 180 ? "0" : "1";
-    // Sweep flag should be 1 for clockwise if endAngle > startAngle (or wraps around)
-    const sweepFlag = "1"; // Always clockwise for our setup
+    const sweepFlag = "1";
 
     if (Math.abs(positiveAngleDiff) < 0.01 || Math.abs(positiveAngleDiff) >= 360) {
-         // Handle zero or full circle cases if necessary, for now, return empty for zero.
          return "";
     }
 
@@ -29,17 +25,14 @@ function describeArc(x, y, radius, startAngle, endAngle) {
     ].join(" ");
 }
 
-// --- Constants for Left Side Arc ---
-const TOTAL_ARC_SWEEP_ANGLE = 180; // 180 degree sweep for left side
-const ARC_START_ANGLE = -90;        // Start at top (12 o'clock)
-const ARC_END_ANGLE = ARC_START_ANGLE + TOTAL_ARC_SWEEP_ANGLE; // Ends at bottom (6 o'clock)
+const TOTAL_ARC_SWEEP_ANGLE = 180;
+const ARC_START_ANGLE = -90;
 
-// --- Left Arc Progress Component ---
 const LeftArcProgress = ({
     value,
     maxValue,
-    radius = 120,
-    strokeWidth = 14,
+    radius = 80,
+    strokeWidth = 8,
     activeColor = '#3498db',
     inactiveColor = '#e8e8e8',
     valueColor = '#2c3e50',
@@ -48,80 +41,47 @@ const LeftArcProgress = ({
 }) => {
     const safeMaxValue = maxValue > 0 ? maxValue : 1;
     const percentage = Math.max(0, Math.min(1, value / safeMaxValue));
-    const progressAngle = percentage * TOTAL_ARC_SWEEP_ANGLE;
-    const currentProgressEndAngle = ARC_START_ANGLE + progressAngle;
+    const animatedProgress = useRef(new Animated.Value(0)).current;
 
-    // SVG container needs to fit the arc
+    useEffect(() => {
+        Animated.timing(animatedProgress, {
+            toValue: percentage,
+            duration: 1000,
+            useNativeDriver: false,
+        }).start();
+    }, [percentage]);
+
     const svgSize = radius * 2 + strokeWidth * 2;
     const center = svgSize / 2;
+    const backgroundPath = describeArc(center, center, radius, ARC_START_ANGLE, ARC_START_ANGLE + TOTAL_ARC_SWEEP_ANGLE);
+    const valueY = center - 20;
+    const subtitleY = center;
 
-    const backgroundPath = describeArc(center, center, radius, ARC_START_ANGLE, ARC_END_ANGLE);
-    const progressPath = value > 0 ? describeArc(center, center, radius, ARC_START_ANGLE, currentProgressEndAngle) : "";
+    const [progressPath, setProgressPath] = React.useState('');
 
-    // Text positioning for left-side arc (text centered in SVG)
-    const valueY = center - 25; // Move value text up slightly
-    const subtitleY = center ; // Position subtitle below
+    useEffect(() => {
+        const id = animatedProgress.addListener(({ value }) => {
+            const angle = ARC_START_ANGLE + value * TOTAL_ARC_SWEEP_ANGLE;
+            const path = describeArc(center, center, radius, ARC_START_ANGLE, angle);
+            setProgressPath(path);
+        });
+        return () => animatedProgress.removeListener(id);
+    }, [animatedProgress]);
 
     return (
-        <View style={{ alignItems: 'center', marginBottom: -90, marginTop: 10 }}>
-            {/* Square SVG container */}
+        <View style={{ alignItems: 'center', marginBottom: -60, marginTop: 5 }}>
             <Svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
-                {/* Background Arc */}
-                <Path
-                    d={backgroundPath}
-                    stroke={inactiveColor}
-                    strokeWidth={strokeWidth}
-                    strokeLinecap="round"
-                    fill="none"
-                />
-                {/* Progress Arc */}
+                <Path d={backgroundPath} stroke={inactiveColor} strokeWidth={strokeWidth} strokeLinecap="round" fill="none" />
                 {progressPath && (
-                     <Path
-                        d={progressPath}
-                        stroke={activeColor}
-                        strokeWidth={strokeWidth}
-                        strokeLinecap="round"
-                        fill="none"
-                    />
+                    <Path d={progressPath} stroke={activeColor} strokeWidth={strokeWidth} strokeLinecap="round" fill="none" />
                 )}
-                
-                {/* Main Value */}
-                <SvgText
-                    x={center}
-                    y={valueY}
-                    fill={valueColor}
-                    fontSize={40}
-                    fontWeight="600"
-                    textAnchor="end"
-                    alignmentBaseline="middle"
-                    dx="5"
-                >
+                <SvgText x={center} y={valueY} fill={valueColor} fontSize={28} fontWeight="600" textAnchor="end" alignmentBaseline="middle" dx="5">
                     {Math.round(value)}
                 </SvgText>
-                
-                {/* Suffix */}
-                <SvgText
-                    x={center + 10}
-                    y={valueY}
-                    fill={suffixColor}
-                    fontSize={20}
-                    fontWeight="400"
-                    textAnchor="start"
-                    alignmentBaseline="middle"
-                >
+                <SvgText x={center + 10} y={valueY} fill={suffixColor} fontSize={16} fontWeight="400" textAnchor="start" alignmentBaseline="middle">
                     {` / ${Math.round(safeMaxValue)}`}
                 </SvgText>
-                
-                {/* Subtitle Text */}
-                <SvgText
-                    x={center}
-                    y={subtitleY}
-                    fill={subtitleColor}
-                    fontSize={14}
-                    fontWeight="400"
-                    textAnchor="middle"
-                    alignmentBaseline="middle"
-                >
+                <SvgText x={center} y={subtitleY} fill={subtitleColor} fontSize={12} fontWeight="400" textAnchor="middle" alignmentBaseline="middle">
                     Kcals consumed
                 </SvgText>
             </Svg>
@@ -129,17 +89,26 @@ const LeftArcProgress = ({
     );
 };
 
-// --- Macronutrient Bar Component (Internal) ---
 const MacroBar = ({ label, color, currentValue, maxValue }) => {
     const safeMaxValue = maxValue > 0 ? maxValue : 1;
-    const progress = Math.max(0, Math.min(100, (currentValue / safeMaxValue) * 100));
+    const percentage = Math.max(0, Math.min(1, currentValue / safeMaxValue));
+    const animatedWidth = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(animatedWidth, {
+            toValue: percentage * 100,
+            duration: 800,
+            useNativeDriver: false,
+        }).start();
+    }, [percentage]);
+
     return (
         <View style={styles.macroBarContainer}>
             <View style={styles.macroTopRow}>
                 <Text style={[styles.macroLabel, { color: color }]}>{label}</Text>
             </View>
             <View style={styles.macroProgressBarBackground}>
-                <View style={[styles.macroProgressBarFill, { backgroundColor: color, width: `${progress}%` }]} />
+                <Animated.View style={[styles.macroProgressBarFill, { backgroundColor: color, width: animatedWidth.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} />
             </View>
             <View style={styles.macroBottomRow}>
                 <Text style={styles.macroCurrentValue}>{currentValue}g</Text>
@@ -149,7 +118,6 @@ const MacroBar = ({ label, color, currentValue, maxValue }) => {
     );
 };
 
-// --- Main Nutrition Tracker Component ---
 const NutritionTracker = ({
     caloriesConsumed = 1100,
     calorieGoal = 1800,
@@ -172,7 +140,6 @@ const NutritionTracker = ({
                 maxValue={safeCalorieGoal}
                 activeColor="#3498db"
             />
-            <Text style={styles.macroTitle}>Macronutrients</Text>
             <View style={styles.macrosRow}>
                 <MacroBar label="Carbs" color="#3498db" currentValue={carbsConsumed} maxValue={safeCarbGoal} />
                 <MacroBar label="Protein" color="#9b59b6" currentValue={proteinConsumed} maxValue={safeProteinGoal} />
@@ -182,55 +149,43 @@ const NutritionTracker = ({
     );
 };
 
-// --- Styles ---
 const styles = StyleSheet.create({
     card: {
         backgroundColor: '#ffffff',
         borderRadius: 10,
-        paddingVertical: 15,
-        paddingHorizontal: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.15,
-        shadowRadius: 2.5,
-        elevation: 3,
-    },
-    macroTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#333333',
-        textAlign: 'center',
-        marginTop: 0,
-        marginBottom: 18,
-        borderTopWidth: 1,
-        borderTopColor: '#eeeeee',
-        paddingTop: 18,
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
     },
     macrosRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
     macroBarContainer: {
-       flex: 1,
-       marginHorizontal: 6,
+        flex: 1,
+        marginHorizontal: 4,
     },
     macroTopRow: {
         flexDirection: 'row',
         justifyContent: 'flex-start',
         alignItems: 'center',
-        marginBottom: 5,
-        height: 20,
+        marginBottom: 4,
+        height: 18,
     },
     macroLabel: {
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: '600',
     },
     macroProgressBarBackground: {
-        height: 9,
+        height: 6,
         backgroundColor: '#f0f0f0',
         borderRadius: 5,
         overflow: 'hidden',
-        marginBottom: 5,
+        marginBottom: 4,
     },
     macroProgressBarFill: {
         height: '100%',
@@ -240,15 +195,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 2,
+        marginTop: 1,
     },
     macroCurrentValue: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
         color: '#444444',
     },
     macroMaxValue: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#999999',
     },
 });

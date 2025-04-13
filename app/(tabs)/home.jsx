@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  Button,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -252,8 +253,8 @@ export default function Home() {
 
   return (
     <View style={styles.safeArea}>
-      <Header />
- 
+      <Header title="Andrei" subtitle={new Date().toDateString()} />
+     
       {/* For now, you might compute daily totals or pass mock goals */}
       <NutritionTracker
         // You can compute totals from 'meals' if you'd like
@@ -271,11 +272,11 @@ export default function Home() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Today's Meals</Text>
         <TouchableOpacity style={styles.addButton} onPress={handleAddMealPress}>
-          <Ionicons name="add-circle" size={28} color="#2196F3" />
+          <Ionicons name="add-circle" size={30} color="#2196F3" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         <MealsList
           meals={meals}
           onMealPress={handleMealPress}
