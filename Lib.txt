@@ -1,0 +1,272 @@
+/calculateTotalsNutritionTracker.jsx :
+
+export const getDailyTotals = (meals = []) => { // Add default empty array for robustness
+  let totalCalories = 0;
+  let totalCarbs = 0;
+  let totalProtein = 0;
+  let totalFat = 0;
+
+  // Check if meals is actually an array before iterating
+  if (!Array.isArray(meals)) {
+    console.error("getDailyTotals received non-array input:", meals);
+    // Return default zero values if input is invalid
+    return { calories: 0, carbs: 0, protein: 0, fat: 0 };
+  }
+
+  meals.forEach((meal) => {
+    // Check if meal.foods exists and is an array before iterating
+    if (meal && Array.isArray(meal.foods)) {
+      meal.foods.forEach((food) => {
+        // Check if food is a valid object before accessing properties
+        if (food && typeof food === 'object') {
+          // --- FIX: Check for both property names and ensure numeric ---
+          totalCalories += Number(food.calories || food.kcal) || 0;
+          totalCarbs += Number(food.carbs) || 0; // Assuming carbs name is consistent
+          totalProtein += Number(food.protein) || 0; // Assuming protein name is consistent
+          totalFat += Number(food.fat || food.fats) || 0;
+          // --- End of FIX ---
+        } else {
+            console.warn("Invalid food item found in meal:", meal.id, food);
+        }
+      });
+    } else {
+        console.warn("Meal found without valid foods array:", meal?.id);
+    }
+  });
+
+  // Round the final totals
+  return {
+    calories: Math.round(totalCalories),
+    carbs: Math.round(totalCarbs), // Consider toFixed(1) if you need decimals
+    protein: Math.round(totalProtein), // Consider toFixed(1)
+    fat: Math.round(totalFat), // Consider toFixed(1)
+  };
+};
+
+------------------------
+
+/foodData.jsx :
+
+const foodList = [
+    {
+      "id": "1",
+      "name": "Banana",
+      "kcal": 89,
+      "protein": 1.1,
+      "carbs": 22.8,
+      "fats": 0.3
+    },
+    {
+      "id": "2",
+      "name": "Chicken Breast (100g)",
+      "kcal": 165,
+      "protein": 31,
+      "carbs": 0,
+      "fats": 3.6
+    },
+    {
+      "id": "3",
+      "name": "Brown Rice (100g)",
+      "kcal": 112,
+      "protein": 2.6,
+      "carbs": 23,
+      "fats": 0.9
+    },
+    {
+      "id": "4",
+      "name": "Almonds (28g)",
+      "kcal": 164,
+      "protein": 6,
+      "carbs": 6,
+      "fats": 14
+    },
+    {
+      "id": "5",
+      "name": "Egg (1 large)",
+      "kcal": 78,
+      "protein": 6.3,
+      "carbs": 0.6,
+      "fats": 5.3
+    },
+    {
+      "id": "6",
+      "name": "Apple (100g)",
+      "kcal": 52,
+      "protein": 0.3,
+      "carbs": 14,
+      "fats": 0.2
+    },
+    {
+      "id": "7",
+      "name": "Salmon (100g)",
+      "kcal": 208,
+      "protein": 20,
+      "carbs": 0,
+      "fats": 13
+    },
+    {
+      "id": "8",
+      "name": "Oats (100g)",
+      "kcal": 389,
+      "protein": 16.9,
+      "carbs": 66.3,
+      "fats": 6.9
+    },
+    {
+      "id": "9",
+      "name": "Broccoli (100g)",
+      "kcal": 34,
+      "protein": 2.8,
+      "carbs": 6.6,
+      "fats": 0.4
+    },
+    {
+      "id": "10",
+      "name": "Greek Yogurt (100g)",
+      "kcal": 59,
+      "protein": 10,
+      "carbs": 3.6,
+      "fats": 0.4
+    }
+  ]
+  
+  export default foodList;
+
+------------------------
+
+/initializeFoodList.jsx :
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import  foodList  from './foodData'; // Adjust path if needed
+
+const FOOD_LIST_KEY = 'foodList';
+const FOOD_LIST_VERSION = '1.0.0';
+
+export const initializeFoodList = async () => {
+    try {
+    //   console.log('📦 Food list:', foodList);
+      const existingVersion = await AsyncStorage.getItem('foodListVersion');
+      if (existingVersion === FOOD_LIST_VERSION) {
+        console.log('✅ Food list already initialized');
+        return;
+      }
+  
+      await AsyncStorage.setItem(FOOD_LIST_KEY, JSON.stringify(foodList));
+      await AsyncStorage.setItem('foodListVersion', FOOD_LIST_VERSION);
+      console.log('✅ Food list initialized and saved');
+
+      const testStored = await AsyncStorage.getItem(FOOD_LIST_KEY);
+      console.log('🔍 What’s actually in storage:', testStored);
+    } catch (error) {
+      console.error('❌ Failed to initialize food list:', error);
+    }
+  };
+
+
+------------------------
+
+/supabase.jsx :
+
+import { AppState } from 'react-native'
+import Constants from 'expo-constants';
+import 'react-native-url-polyfill/auto'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = "https://hokhefdiqrmkoozdvgmz.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhva2hlZmRpcXJta29vemR2Z216Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDQxNTE5OSwiZXhwIjoyMDU1OTkxMTk5fQ.0pdB_fsElgL_694oTiiELwFeGJR5xAukkjbKEH7_MsE";
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+})
+
+// Tells Supabase Auth to continuously refresh the session automatically
+// if the app is in the foreground. When this is added, you will continue
+// to receive `onAuthStateChange` events with the `TOKEN_REFRESHED` or
+// `SIGNED_OUT` event if the user's session is terminated. This should
+// only be registered once.
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') {
+    supabase.auth.startAutoRefresh()
+  } else {
+    supabase.auth.stopAutoRefresh()
+  }
+})
+
+------------------------
+
+/useFoodStorage.js :
+
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const FOOD_LIST_KEY = 'foodList';
+const TODAY_MEALS_KEY = 'todayMeals';
+
+export default function useFoodStorage() {
+  const [foodDatabase, setFoodDatabase] = useState([]);
+  const [meals, setMeals] = useState([]);
+
+  // Load both on mount
+  useEffect(() => {
+    loadFoodListFromStorage();
+    loadTodayMealsFromStorage();
+  }, []);
+
+  // -- Load the food list --
+  const loadFoodListFromStorage = async () => {
+    try {
+      const storedList = await AsyncStorage.getItem(FOOD_LIST_KEY);
+      if (storedList) {
+        setFoodDatabase(JSON.parse(storedList));
+      } else {
+        console.log('No foodList found in AsyncStorage, defaulting to empty or fetch from server...');
+      }
+    } catch (error) {
+      console.error('Failed to load foodList:', error);
+    }
+  };
+
+  // -- Load today's meals --
+  const loadTodayMealsFromStorage = async () => {
+    try {
+      const storedMeals = await AsyncStorage.getItem(TODAY_MEALS_KEY);
+      if (storedMeals) {
+        setMeals(JSON.parse(storedMeals));
+      } else {
+        console.log('No todayMeals found, defaulting to empty array');
+        setMeals([]);
+      }
+    } catch (error) {
+      console.error('Failed to load todayMeals:', error);
+    }
+  };
+
+  // -- Save updated meals to storage --
+  const saveTodayMealsToStorage = async (updatedMeals) => {
+    try {
+      await AsyncStorage.setItem(TODAY_MEALS_KEY, JSON.stringify(updatedMeals));
+    } catch (error) {
+      console.error('Failed to save todayMeals:', error);
+    }
+  };
+
+  return {
+    foodDatabase,     // array of food items from AsyncStorage
+    setFoodDatabase,  // in case you want to manipulate the DB
+    meals,            // user's "today meals"
+    setMeals,         // in case you want to set meals locally
+    loadFoodListFromStorage,
+    loadTodayMealsFromStorage,
+    saveTodayMealsToStorage,
+  };
+}
+
+
+------------------------
+

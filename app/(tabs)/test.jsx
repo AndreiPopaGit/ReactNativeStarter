@@ -1,12 +1,13 @@
 import { View, Text } from 'react-native'
 import React from 'react'
+import FoodScannerScreen from '../../components/camera/FoodScannerScreen'
 
-const test = () => {
+const Test = () => {
   return (
-    <View>
-      <Text>test</Text>
-    </View>
+    <>
+    <FoodScannerScreen></FoodScannerScreen>
+    </>
   )
 }
 
-export default test
+export default Test

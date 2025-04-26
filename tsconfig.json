@@ -13,5 +13,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-, "lib/supabase.jsx", "lib/initializeFoodList.jsx", "lib/foodData.jsx", "context/AuthContext.tsx", "components/Auth.jsx", "app/index.jsx", "app/(tabs)/home.jsx", "app/_layout.jsx", "app/(tabs)/test.jsx", "app/(tabs)/profile.jsx", "app/(tabs)/_layout.jsx", "app/(tabs)/home.jsx"  ]
+, "lib/supabase.jsx", "lib/initializeFoodList.jsx", "lib/foodData.jsx", "context/AuthContext.tsx", "components/Auth.jsx", "app/index.jsx", "app/(tabs)/home.jsx", "app/_layout.jsx", "app/(tabs)/test.jsx", "app/(tabs)/profile.jsx", "app/(tabs)/_layout.jsx", "app/(tabs)/home.jsx", "components/home/NutritionTracker.jsx"  ]
 }
