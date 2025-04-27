@@ -13,7 +13,7 @@ export default function MealCard({ meal, totalCalories, nutrients }) {
         <Text style={styles.items}>
           {meal.foods.length} {meal.foods.length === 1 ? 'item' : 'items'}
         </Text>
-        <Text style={styles.calories}>{totalCalories} cal</Text>
+        <Text style={styles.calories}>{totalCalories} kcal</Text>
       </View>
 
       <View style={styles.macrosContainer}>
@@ -27,7 +27,7 @@ export default function MealCard({ meal, totalCalories, nutrients }) {
         </View>
         <View style={styles.macro}>
           <Text style={styles.macroLabel}>Fat</Text>
-          <Text style={styles.macroValue}>{nutrients.fat}g</Text>
+          <Text style={styles.macroValue}>{nutrients.fats}g</Text>
         </View>
       </View>
     </View>

@@ -39,7 +39,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const calculateMealCalories = (foods) => {
-    return Math.round(foods.reduce((total, f) => total + f.calories, 0));
+    return Math.round(foods.reduce((total, f) => total + f.kcal, 0));
   };
 
   const calculateMealNutrients = (foods) => {
@@ -47,7 +47,7 @@ export default function Home() {
       (acc, f) => ({
         protein: Math.round(acc.protein + f.protein),
         carbs: Math.round(acc.carbs + f.carbs),
-        fat: Math.round(acc.fat + f.fat),
+        fat: Math.round(acc.fat + f.fats),
       }),
       { protein: 0, carbs: 0, fat: 0 }
     );

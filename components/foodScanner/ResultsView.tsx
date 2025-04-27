@@ -1,209 +1,399 @@
-// --- START OF FILE components/foodScanner/ResultsView.tsx ---
-// PART 2 of 3
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    View,
-    Text,
-    Image,
-    ScrollView,
-    TouchableOpacity,
-    StyleSheet,
-    Platform // <<< Make sure Platform is imported
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FoodItem } from '../../types'; // <<< Adjust path to your types file
+import { FoodItem } from '../../types';
 
-interface ResultsViewProps {
-    imageUri?: string; // Image is optional (might fail to capture/save)
-    foodData: FoodItem[]; // Expecting a non-empty array here based on parent logic
-    onAddToLog: () => void;
-    onRetake: () => void; // <<< Added prop for "Scan Again" action
+/**
+ * Extend every food item with a unique id and a transient `pending` flag
+ * so we can show independent undo placeholders that *do not expire*.
+ */
+interface FoodItemWithState extends FoodItem {
+  id: string;
+  pending: boolean;
 }
 
-// Helper function to calculate totals from the food items
-const calculateTotalNutrition = (foods: FoodItem[]): { calories: number; protein: number; carbs: number; fat: number } => {
-    return foods.reduce(
-      (totals, f) => ({
-        calories: totals.calories + (Number(f.kcal) || 0), // Ensure calculation is numeric
-        protein: totals.protein + (Number(f.protein) || 0),
-        carbs: totals.carbs + (Number(f.carbs) || 0),
-        fat: totals.fat + (Number(f.fats) || 0), // Use 'fats' property
+interface ResultsViewProps {
+  imageUri?: string;
+  foodData: FoodItem[];
+  onAddToLog: (items: FoodItem[]) => void;
+  onRetake: () => void;
+}
+
+export const ResultsView: React.FC<ResultsViewProps> = ({
+  imageUri,
+  foodData,
+  onAddToLog,
+  onRetake,
+}) => {
+  /** Local list of items with deletion state */
+  const [items, setItems] = useState<FoodItemWithState[]>([]);
+
+  /**
+   * Initialise on first render or when the parent supplies new data.
+   */
+  useEffect(() => {
+    const now = Date.now();
+    setItems(
+      foodData.map((f, idx) => ({
+        ...f,
+        id: `${f.name}-${idx}-${now}`,
+        pending: false,
+      }))
+    );
+  }, [foodData]);
+
+  /* ------------------------------------------------------------------ */
+  /* ----------------------   Utils & helpers   ----------------------- */
+  /* ------------------------------------------------------------------ */
+
+  const calculateTotals = (foods: FoodItemWithState[]) =>
+    foods.reduce(
+      (tot, f) => ({
+        calories: tot.calories + (Number(f.kcal) || 0),
+        protein: tot.protein + (Number(f.protein) || 0),
+        carbs: tot.carbs + (Number(f.carbs) || 0),
+        fat: tot.fat + (Number(f.fats) || 0),
       }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 } // Initial accumulator
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
-};
 
-export const ResultsView: React.FC<ResultsViewProps> = ({ imageUri, foodData, onAddToLog, onRetake }) => {
-    // Calculate totals only if foodData is valid
-    const total = foodData.length > 0 ? calculateTotalNutrition(foodData) : { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    const matchPercentage = "92%"; // Example - replace with real data if available
+  const visibleItems = items.filter((i) => !i.pending);
+  const totals = calculateTotals(visibleItems);
 
-    return (
-        // Use flex: 1 to allow ScrollView and buttons to position correctly
-        <View style={styles.resultsContainer}>
-            {/* Removed header from here - handled by screen component potentially */}
+  /* ------------------------------------------------------------------ */
+  /* -----------------------   Delete / Undo   ------------------------ */
+  /* ------------------------------------------------------------------ */
 
-            <ScrollView style={styles.resultsScrollView}>
-                {/* Results Card */}
-                <View style={styles.resultsCard}>
-                    {imageUri ? (
-                         <Image source={{ uri: imageUri }} style={styles.resultImage} resizeMode="cover" />
-                     ) : (
-                         // Optional: Placeholder if imageUri is missing
-                         <View style={[styles.resultImage, styles.imagePlaceholder]}>
-                             <Ionicons name="image-outline" size={50} color="#cbd5e1"/>
-                         </View>
-                     )}
+  const markDeleted = (id: string) => {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, pending: true } : it)));
+  };
 
+  const undoDelete = (id: string) => {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, pending: false } : it)));
+  };
 
-                    <View style={styles.foodMatched}>
-                        <Text style={styles.foodMatchedName} numberOfLines={1} ellipsizeMode="tail">
-                            {/* Provide default if name somehow missing */}
-                            {foodData[0]?.name || "Identified Food"}
-                        </Text>
-                        {/* Only show badge if relevant */}
-                        {/* <View style={styles.matchBadge}>
-                            <Text style={styles.matchText}>{matchPercentage} match</Text>
-                        </View> */}
-                    </View>
+  /* ------------------------------------------------------------------ */
+  /* ---------------------   Add to daily log   ----------------------- */
+  /* ------------------------------------------------------------------ */
 
-                    <View style={styles.nutritionSummary}>
-                        <Text style={styles.nutritionLabel}>Total Estimated Calories</Text>
-                        <Text style={styles.caloriesValue}>{Math.round(total.calories)} kcal</Text>
+  const handleAddToLog = () => {
+    if (visibleItems.length === 0) {
+      Alert.alert('No Items', 'There are no food items to add to your log.');
+      return;
+    }
 
-                        <View style={styles.macrosRow}>
-                            <View style={styles.macroItem}>
-                                <Text style={styles.macroLabel}>Protein</Text>
-                                <Text style={styles.macroValue}>{total.protein.toFixed(1)}g</Text>
-                            </View>
-                            <View style={styles.macroItem}>
-                                <Text style={styles.macroLabel}>Carbs</Text>
-                                <Text style={styles.macroValue}>{total.carbs.toFixed(1)}g</Text>
-                            </View>
-                            <View style={styles.macroItem}>
-                                <Text style={styles.macroLabel}>Fat</Text>
-                                <Text style={styles.macroValue}>{total.fat.toFixed(1)}g</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
+    // Strip helper keys before sending back.
+    onAddToLog(
+      visibleItems.map(({ id, pending, ...food }) => ({ ...food }))
+    );
+  };
 
-                {/* Identified Items List */}
-                <View style={styles.identifiedItemsContainer}>
-                    <Text style={styles.identifiedItemsTitle}>Identified Items Breakdown</Text>
-                    {foodData.map((food, idx) => (
-                        <View key={`${food.name}-${idx}-${food.kcal}`} style={styles.identifiedItem}>
-                            <View style={styles.itemDetail}>
-                                <Text style={styles.itemName}>{food.name || 'Unknown Item'}</Text>
-                            </View>
-                            <Text style={styles.itemCalories}>{food.kcal || 0} cal</Text>
-                        </View>
-                    ))}
-                </View>
+  /* ------------------------------------------------------------------ */
+  /* -------------------------   RENDER   ----------------------------- */
+  /* ------------------------------------------------------------------ */
 
-                <Text style={styles.disclaimerText}>
-                    Nutritional information is estimated based on image recognition. Verify for accuracy.
-                </Text>
-                 {/* Add some padding at the bottom of scroll view */}
-                 <View style={{ height: 20 }} />
-            </ScrollView>
-
-            {/* Action Buttons Container */}
-            <View style={styles.resultsActionsContainer}>
-                 {/* "Scan Again" Button */}
-                 <TouchableOpacity style={[styles.actionButton, styles.retakeButton]} onPress={onRetake}>
-                     <Ionicons name="refresh-outline" size={20} color="#3b82f6" />
-                     <Text style={styles.retakeButtonText}>Scan Again</Text>
-                 </TouchableOpacity>
-
-                 {/* "Add to Log" Button */}
-                <TouchableOpacity style={[styles.actionButton, styles.addToLogButton]} onPress={onAddToLog}>
-                    <Ionicons name="add-circle-outline" size={22} color="white" />
-                    <Text style={styles.addToLogButtonText}>Add to Log</Text>
-                </TouchableOpacity>
+  return (
+    <View style={styles.container}>
+      {/* ------------------------------------------------------------- */}
+      {/*                         HEADER CARD                          */}
+      {/* ------------------------------------------------------------- */}
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 32 }}>
+        <View style={styles.card}>
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.image} />
+          ) : (
+            <View style={[styles.image, styles.placeholder]}>
+              <Ionicons name="image-outline" size={50} color="#cbd5e1" />
             </View>
+          )}
+
+          <View style={styles.matchedRow}>
+            <Text
+              style={styles.matchedName}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {visibleItems[0]?.name || 'Identified Food'}
+            </Text>
+          </View>
+
+          <View style={styles.summary}>
+            <Text style={styles.summaryLabel}>Total Estimated Calories</Text>
+            <Text style={styles.calories}>{Math.round(totals.calories)} kcal</Text>
+
+            <View style={styles.macrosRow}>
+              <Macro label="Protein" value={`${totals.protein.toFixed(1)}g`} />
+              <Macro label="Carbs" value={`${totals.carbs.toFixed(1)}g`} />
+              <Macro label="Fat" value={`${totals.fat.toFixed(1)}g`} />
+            </View>
+          </View>
         </View>
-    );
+
+        {/* ----------------------------------------------------------- */}
+        {/*                    IDENTIFIED ITEMS LIST                   */}
+        {/* ----------------------------------------------------------- */}
+        <View style={styles.listWrapper}>
+          <Text style={styles.listTitle}>Identified Items ({visibleItems.length})</Text>
+
+          {items.length === 0 && (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>No food items identified</Text>
+            </View>
+          )}
+
+          {items.map((item) =>
+            item.pending ? (
+              <PendingRow key={item.id} onUndo={() => undoDelete(item.id)} />
+            ) : (
+              <FoodRow key={item.id} item={item} onDelete={() => markDeleted(item.id)} />
+            )
+          )}
+        </View>
+
+        <Text style={styles.disclaimer}>
+          Nutritional information is estimated based on image recognition. Verify for
+          accuracy.
+        </Text>
+      </ScrollView>
+
+      {/* ----------------------------------------------------------- */}
+      {/*                        ACTION BAR                           */}
+      {/* ----------------------------------------------------------- */}
+      <View style={styles.actionsBar}>
+        <ActionButton style={styles.retakeBtn} onPress={onRetake}>
+          <Ionicons name="refresh-outline" size={20} color="#3b82f6" />
+          <Text style={styles.retakeTxt}>Scan Again</Text>
+        </ActionButton>
+
+        <ActionButton
+          style={[styles.addBtn, visibleItems.length === 0 && styles.disabledBtn]}
+          onPress={handleAddToLog}
+          disabled={visibleItems.length === 0}
+        >
+          <Ionicons name="add-circle-outline" size={22} color="white" />
+          <Text style={styles.addTxt}>Add to Log</Text>
+        </ActionButton>
+      </View>
+    </View>
+  );
 };
 
-// --- STYLES ---
-// (Includes styles for the new action buttons container and retake button)
-const styles = StyleSheet.create({
-    resultsContainer: {
-        flex: 1, // Need flex: 1 for layout
-        backgroundColor: '#f8fafc',
-    },
-    resultsScrollView: {
-        flex: 1, // Allow scroll view to take up space above buttons
-    },
-    resultsCard: { backgroundColor: 'white', margin: 16, borderRadius: 12, overflow: 'hidden', shadowColor: '#9ca3af', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 5, elevation: 4 },
-    resultImage: { width: '100%', height: 220, backgroundColor: '#e2e8f0' },
-    imagePlaceholder: { justifyContent: 'center', alignItems: 'center'}, // Style for placeholder
-    foodMatched: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#f1f5f9', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-    foodMatchedName: { color: '#1e293b', fontSize: 18, fontWeight: '600', flex: 1, marginRight: 10 },
-    matchBadge: { backgroundColor: '#16a34a', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 15 },
-    matchText: { color: 'white', fontSize: 12, fontWeight: '600' },
-    nutritionSummary: { padding: 16 },
-    nutritionLabel: { fontSize: 14, color: '#64748b', marginBottom: 4 },
-    caloriesValue: { fontSize: 32, fontWeight: 'bold', color: '#1e293b', marginBottom: 16 },
-    macrosRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 },
-    macroItem: { alignItems: 'center', flex: 1 },
-    macroLabel: { fontSize: 13, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-    macroValue: { fontSize: 18, fontWeight: '600', color: '#334155' },
-    identifiedItemsContainer: { backgroundColor: 'white', marginHorizontal: 16, marginBottom: 16, borderRadius: 12, overflow: 'hidden', shadowColor: '#9ca3af', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 },
-    identifiedItemsTitle: { fontSize: 16, fontWeight: '600', color: '#1e293b', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    identifiedItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-    itemDetail: { flex: 1, marginRight: 10 },
-    itemName: { fontSize: 15, fontWeight: '500', color: '#334155' },
-    itemCalories: { fontSize: 15, fontWeight: '600', color: '#0ea5e9' },
-    disclaimerText: { fontSize: 12, color: '#64748b', textAlign: 'center', marginHorizontal: 24, marginBottom: 10, lineHeight: 18 }, // Reduced bottom margin
+/* -------------------------------------------------------------------- */
+/* --------------------------  Sub-components  ------------------------- */
+/* -------------------------------------------------------------------- */
 
-    // Styles for the bottom action buttons
-    resultsActionsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around', // Space buttons evenly
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#e2e8f0', // Light separator line
-        backgroundColor: '#ffffff', // White background for button area
-        paddingBottom: Platform.OS === 'ios' ? 30 : 16, // Extra padding for iOS home indicator
+type WithChildren<T = {}> = T & { children?: React.ReactNode };
+
+type ActionButtonProps = WithChildren<{
+  onPress: () => void;
+  disabled?: boolean;
+  style?: any;
+}>;
+
+const ActionButton = ({ onPress, disabled, style, children }: ActionButtonProps) => (
+  <TouchableOpacity
+    style={[styles.actionBtn, style, disabled && styles.disabledBtn]}
+    onPress={onPress}
+    disabled={disabled}
+  >
+    {children}
+  </TouchableOpacity>
+);
+
+const Macro = ({ label, value }: { label: string; value: string }) => (
+  <View style={styles.macroBox}>
+    <Text style={styles.macroLabel}>{label}</Text>
+    <Text style={styles.macroValue}>{value}</Text>
+  </View>
+);
+
+const FoodRow = ({
+  item,
+  onDelete,
+}: {
+  item: FoodItemWithState;
+  onDelete: () => void;
+}) => (
+  <View style={styles.foodRow}>
+    <View style={{ flex: 1, marginRight: 10 }}>
+      <Text style={styles.foodName}>{item.name || 'Unknown Item'}</Text>
+    </View>
+    <Text style={styles.foodCalories}>{item.kcal || 0} cal</Text>
+    <TouchableOpacity style={styles.delBtn} onPress={onDelete}>
+      <Ionicons name="trash-outline" size={20} color="#ef4444" />
+    </TouchableOpacity>
+  </View>
+);
+
+const PendingRow = ({ onUndo }: { onUndo: () => void }) => (
+  <View style={styles.pendingRow}>
+    <Text style={styles.pendingTxt}>Item removed</Text>
+    <TouchableOpacity onPress={onUndo} style={styles.undoBtnRow}>
+      <Text style={styles.undoTxtRow}>UNDO</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#f8fafc' },
+    scroll: { flex: 1 },
+    /* CARD */
+    card: {
+      backgroundColor: 'white',
+      margin: 16,
+      borderRadius: 12,
+      overflow: 'hidden',
+      shadowColor: '#9ca3af',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.2,
+      shadowRadius: 5,
+      elevation: 4,
     },
-    actionButton: { // Common style for both buttons
-        flex: 1, // Make buttons share width
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 14, // Button height
-        borderRadius: 8,
-        marginHorizontal: 6, // Space between buttons
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+    image: { width: '100%', height: 220, backgroundColor: '#e2e8f0' },
+    placeholder: { justifyContent: 'center', alignItems: 'center' },
+    matchedRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: '#f1f5f9',
+      borderBottomWidth: 1,
+      borderBottomColor: '#e2e8f0',
     },
-    retakeButton: { // Specific style for "Scan Again"
-        backgroundColor: '#ffffff', // White background
-        borderWidth: 1,
-        borderColor: '#cbd5e1', // Gray border
+    matchedName: {
+      color: '#1e293b',
+      fontSize: 18,
+      fontWeight: '600',
+      flex: 1,
+      marginRight: 10,
     },
-    retakeButtonText: {
-        color: '#3b82f6', // Blue text
-        fontWeight: '600',
-        fontSize: 16,
-        marginLeft: 8,
+    summary: { padding: 16 },
+    summaryLabel: { fontSize: 14, color: '#64748b', marginBottom: 4 },
+    calories: { fontSize: 32, fontWeight: 'bold', color: '#1e293b', marginBottom: 16 },
+    macrosRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: '#f1f5f9',
+      paddingTop: 16,
     },
-    addToLogButton: { // Specific style for "Add to Log"
-        backgroundColor: '#16a34a', // Green color
+    macroBox: { alignItems: 'center', flex: 1 },
+    macroLabel: {
+      fontSize: 13,
+      color: '#64748b',
+      marginBottom: 4,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
-    addToLogButtonText: {
-        color: 'white',
-        fontWeight: '600',
-        fontSize: 16,
-        marginLeft: 8,
+    macroValue: { fontSize: 18, fontWeight: '600', color: '#334155' },
+    /* LIST */
+    listWrapper: {
+      backgroundColor: 'white',
+      marginHorizontal: 16,
+      marginBottom: 16,
+      borderRadius: 12,
+      overflow: 'hidden',
+      shadowColor: '#9ca3af',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 3,
     },
-});
-// --- END OF FILE components/foodScanner/ResultsView.tsx ---
-// --- END OF PART 2 ---
+    listTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#1e293b',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f1f5f9',
+    },
+    foodRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderTopWidth: 1,
+      borderTopColor: '#f1f5f9',
+    },
+    foodName: { fontSize: 15, fontWeight: '500', color: '#334155' },
+    foodCalories: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: '#0ea5e9',
+      minWidth: 60,
+      textAlign: 'right',
+      marginRight: 8,
+    },
+    delBtn: { padding: 8, marginLeft: 8 },
+    /* PENDING ROW */
+    pendingRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: '#f87171',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    pendingTxt: { color: '#fff', fontSize: 14 },
+    undoBtnRow: { padding: 4 },
+    undoTxtRow: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    /* EMPTY */
+    emptyBox: { padding: 20, alignItems: 'center' },
+    emptyText: { color: '#64748b', fontSize: 15 },
+    /* DISCLAIMER */
+    disclaimer: {
+      fontSize: 12,
+      color: '#64748b',
+      textAlign: 'center',
+      marginHorizontal: 24,
+      marginBottom: 10,
+      lineHeight: 18,
+    },
+    /* ACTIONS */
+    actionsBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderTopWidth: 1,
+      borderTopColor: '#e2e8f0',
+      backgroundColor: '#ffffff',
+      paddingBottom: Platform.OS === 'ios' ? 30 : 16,
+    },
+    actionBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderRadius: 8,
+      marginHorizontal: 6,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    retakeBtn: {
+      backgroundColor: '#ffffff',
+      borderWidth: 1,
+      borderColor: '#cbd5e1',
+    },
+    retakeTxt: { color: '#3b82f6', fontWeight: '600', fontSize: 16, marginLeft: 8 },
+    addBtn: { backgroundColor: '#16a34a' },
+    addTxt: { color: 'white', fontWeight: '600', fontSize: 16, marginLeft: 8 },
+    disabledBtn: { backgroundColor: '#9ca3af', opacity: 0.7 },
+  });
+  
+  export default ResultsView;
