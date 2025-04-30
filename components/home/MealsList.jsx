@@ -5,6 +5,7 @@ import MealCard from './MealCard';
 export default function MealsList({
   meals = [],
   onMealPress,
+  onMealDelete,
   calculateMealCalories,
   calculateMealNutrients,
   emptyStateComponent,
@@ -26,11 +27,13 @@ export default function MealsList({
             style={{ marginBottom: 16 }}
             onPress={() => onMealPress(meal)}
             activeOpacity={0.9}
+            onLongPress={() => onMealDelete(meal.id)}
           >
             <MealCard
               meal={meal}
               totalCalories={totalCalories}
               nutrients={nutrients}
+              onDelete={() => onMealDelete(meal.id)} 
             />
           </TouchableOpacity>
         );

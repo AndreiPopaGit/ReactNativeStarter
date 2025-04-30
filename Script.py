@@ -17,6 +17,6 @@ def collect_js_files(base_dir, output_file):
 
 # Example usage:
 base_path = r"C:\ProjectsForHire\Foodie\foodie-app"
-collect_js_files(os.path.join(base_path, 'components'), 'Components.txt')
-collect_js_files(os.path.join(base_path, 'lib'), 'Lib.txt')
-collect_js_files(os.path.join(base_path, 'app'), 'App.txt')
+collect_js_files(os.path.join(base_path, 'components/home'), 'Components.txt')
+# collect_js_files(os.path.join(base_path, 'lib'), 'Lib.txt')
+# collect_js_files(os.path.join(base_path, 'app'), 'App.txt')

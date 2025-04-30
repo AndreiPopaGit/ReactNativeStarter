@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Text,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -20,6 +21,8 @@ import MealModal from '../../components/home/MealModal';
 import AddFoodModal from '../../components/home/AddFoodModal';
 
 export default function Home() {
+
+  const GOAL_KEY = 'calorieGoal';
   const route = useRoute();
   const {
     foodDatabase,
@@ -28,6 +31,7 @@ export default function Home() {
     saveTodayMealsToStorage,
   } = useFoodStorage();
 
+  const [calorieGoal, setCalorieGoal] = useState(2000);
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [isNewMeal, setIsNewMeal] = useState(false);
   const [mealModalVisible, setMealModalVisible] = useState(false);
@@ -39,15 +43,15 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const calculateMealCalories = (foods) => {
-    return Math.round(foods.reduce((total, f) => total + f.kcal, 0));
+    return Math.round(foods.reduce((total, f) => total + (f.calories || 0), 0));
   };
 
   const calculateMealNutrients = (foods) => {
     return foods.reduce(
       (acc, f) => ({
-        protein: Math.round(acc.protein + f.protein),
-        carbs: Math.round(acc.carbs + f.carbs),
-        fat: Math.round(acc.fat + f.fats),
+        protein: Math.round(acc.protein + (f.protein || 0)),
+        carbs: Math.round(acc.carbs + (f.carbs || 0)),
+        fat: Math.round(acc.fat + (f.fat || 0)),
       }),
       { protein: 0, carbs: 0, fat: 0 }
     );
@@ -57,6 +61,26 @@ export default function Home() {
     setSelectedMeal(meal);
     setIsNewMeal(false);
     setMealModalVisible(true);
+  };
+
+  /** Delete a meal entirely */
+  const handleDeleteMeal = (mealId) => {
+    Alert.alert(
+      'Delete meal?',
+      'This will remove the meal and all foods inside it.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const updatedMeals = meals.filter((m) => m.id !== mealId);
+            setMeals(updatedMeals);
+            saveTodayMealsToStorage(updatedMeals);
+          },
+        },
+      ],
+    );
   };
 
   const handleAddMealPress = () => {
@@ -126,7 +150,7 @@ export default function Home() {
             calories: Math.round(foodDbItem.kcal * factor),
             protein: Math.round(foodDbItem.protein * factor * 10) / 10,
             carbs: Math.round(foodDbItem.carbs * factor * 10) / 10,
-            fat: Math.round(foodDbItem.fats * factor * 10) / 10,
+            fat: Math.round(foodDbItem.fat * factor * 10) / 10,
           };
         }
         return { ...food, quantity: newQuantity };
@@ -186,7 +210,7 @@ export default function Home() {
       calories: Math.round(foodItem.kcal * factor),
       protein: Math.round(foodItem.protein * factor * 10) / 10,
       carbs: Math.round(foodItem.carbs * factor * 10) / 10,
-      fat: Math.round(foodItem.fats * factor * 10) / 10,
+      fat: Math.round(foodItem.fat * factor * 10) / 10,
     };
 
     const updatedFoods = [...selectedMeal.foods, newFood];
@@ -220,6 +244,17 @@ export default function Home() {
       };
 
       loadMeals();
+
+      /* load calorie goal every time Home gains focus */
+      const loadGoal = async () => {
+        try {
+          const stored = await AsyncStorage.getItem(GOAL_KEY);
+          if (stored) setCalorieGoal(parseInt(stored, 10));
+        } catch (e) {
+          console.error('Error loading calorie goal', e);
+        }
+      };
+      loadGoal();
     }, [route.params?.mealsUpdated]) // listens for updates
   );
 
@@ -229,7 +264,7 @@ export default function Home() {
 
       <NutritionTracker
         caloriesConsumed={calories}
-        calorieGoal={2000}
+        calorieGoal={calorieGoal}
         carbsConsumed={carbs}
         carbGoal={250}
         proteinConsumed={protein}
@@ -249,6 +284,7 @@ export default function Home() {
         <MealsList
           meals={meals}
           onMealPress={handleMealPress}
+          onMealDelete={handleDeleteMeal}
           calculateMealCalories={calculateMealCalories}
           calculateMealNutrients={calculateMealNutrients}
           emptyStateComponent={
@@ -299,14 +335,15 @@ export default function Home() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#111827',
   },
   container: {
     flex: 1,
+    backgroundColor: '#111827'
   },
   contentContainer: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     paddingBottom: 20,
   },
   sectionHeader: {
@@ -319,7 +356,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#ffffff',
   },
   addButton: {
     padding: 5,

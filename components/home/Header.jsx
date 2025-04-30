@@ -10,7 +10,7 @@ import {
 const Header = ({ title = 'Andrei', subtitle = new Date().toDateString() }) => {
   return (
     <>
-      <StatusBar backgroundColor="#2962FF" barStyle="light-content" />
+      <StatusBar backgroundColor="#581C87" barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.headerContainer}>
           <Text style={styles.title}>{title}</Text>
@@ -23,20 +23,15 @@ const Header = ({ title = 'Andrei', subtitle = new Date().toDateString() }) => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#2962FF',
+    backgroundColor: '#581C87',
   },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#2962FF',
+    backgroundColor: '#581C87',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
   },
   title: {
     color: '#FFFFFF',

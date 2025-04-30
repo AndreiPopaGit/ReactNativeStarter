@@ -58,14 +58,14 @@ export default function AddFoodModal({
                 <View>
                   <Text style={styles.foodListItemName}>{item.name}</Text>
                   <Text style={styles.foodListItemCalories}>
-                    {item.caloriesPer100g} cal / 100g
+                    {item.calories} kcal / 100g
                   </Text>
                 </View>
 
                 <View style={styles.foodListMacros}>
-                  <Text style={styles.foodListMacro}>P: {item.proteinPer100g}g</Text>
-                  <Text style={styles.foodListMacro}>C: {item.carbsPer100g}g</Text>
-                  <Text style={styles.foodListMacro}>F: {item.fatPer100g}g</Text>
+                  <Text style={styles.foodListMacro}>P: {item.protein}g</Text>
+                  <Text style={styles.foodListMacro}>C: {item.carbs}g</Text>
+                  <Text style={styles.foodListMacro}>F: {item.fats}g</Text>
                 </View>
               </TouchableOpacity>
             )}

@@ -80,7 +80,7 @@ export default function MealModal({
                   <View style={styles.foodInfo}>
                     <Text style={styles.foodName}>{food.name}</Text>
                     <View style={styles.foodNutrients}>
-                      <Text style={styles.foodCalories}>{food.calories} cal</Text>
+                      <Text style={styles.foodCalories}>{food.calories} Kcal</Text>
                       <Text style={styles.foodNutrient}>P: {food.protein}g</Text>
                       <Text style={styles.foodNutrient}>C: {food.carbs}g</Text>
                       <Text style={styles.foodNutrient}>F: {food.fat}g</Text>

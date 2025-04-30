@@ -13,10 +13,10 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{
-        headerShown: false,
-        animation: 'fade'
-      }}/>
+        <Stack screenOptions={{
+          headerShown: false,
+          animation: 'fade'
+        }} />
     </AuthProvider>
   );
 }

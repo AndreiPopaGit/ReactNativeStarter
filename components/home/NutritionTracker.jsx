@@ -47,11 +47,11 @@ const LeftArcProgress = ({
     maxValue,
     radius = 80, // Default value using JS destructuring
     strokeWidth = 8,
-    activeColor = '#3498db',
+    activeColor = '#F472B6',
     inactiveColor = '#e8e8e8',
-    valueColor = '#2c3e50',
-    suffixColor = '#7f8c8d',
-    subtitleColor = '#555555',
+    valueColor = '#ffffff',
+    suffixColor = '#ffffff',
+    subtitleColor = '#ffffff',
 }) => {
     // Ensure numeric values, default to 0
     const numericValue = Number(value) || 0;
@@ -234,12 +234,12 @@ const NutritionTracker = ({
             <LeftArcProgress
                 value={validCaloriesConsumed}
                 maxValue={validCalorieGoal}
-                activeColor="#3498db"
+                activeColor="#F472B6"
             />
             <View style={styles.macrosRow}>
-                <MacroBar label="Carbs" color="#3498db" currentValue={validCarbsConsumed} maxValue={validCarbGoal} />
-                <MacroBar label="Protein" color="#9b59b6" currentValue={validProteinConsumed} maxValue={validProteinGoal} />
-                <MacroBar label="Fat" color="#f39c12" currentValue={validFatConsumed} maxValue={validFatGoal} />
+                <MacroBar label="Carbs" color="#F472B6" currentValue={validCarbsConsumed} maxValue={validCarbGoal} />
+                <MacroBar label="Protein" color="#F472B6" currentValue={validProteinConsumed} maxValue={validProteinGoal} />
+                <MacroBar label="Fat" color="#F472B6" currentValue={validFatConsumed} maxValue={validFatGoal} />
             </View>
         </View>
     );
@@ -247,15 +247,10 @@ const NutritionTracker = ({
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#ffffff',
-        borderRadius: 10,
+        backgroundColor: '#581C87',
+        borderBottomEndRadius: 10,
         paddingVertical: 10,
         paddingHorizontal: 14,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
     },
     macrosRow: {
         flexDirection: 'row',
@@ -296,11 +291,11 @@ const styles = StyleSheet.create({
     macroCurrentValue: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#444444',
+        color: '#ffffff',
     },
     macroMaxValue: {
         fontSize: 12,
-        color: '#999999',
+        color: '#F472B6',
     },
 });
 
